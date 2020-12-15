@@ -1,0 +1,4 @@
+*.pb.gz
+*.paste
+
+.vscode/
