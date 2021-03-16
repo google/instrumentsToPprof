@@ -253,8 +253,8 @@ func (toPprof *deepCopyToPprofConverter) convertToPprof() *profile.Profile {
 	}
 }
 
-// ConvertDeepCopyToProfile converts a TimeProfile to a pprof Profile.
-func ConvertDeepCopyToProfile(deepCopy *TimeProfile,
+// TimeProfileToPprof converts a TimeProfile to a pprof Profile.
+func TimeProfileToPprof(deepCopy *TimeProfile,
 	excludeProcessesFromStack bool,
 	excludeThreadsFromStack bool,
 	includeThreadAndProcessIds bool,

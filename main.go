@@ -55,7 +55,6 @@ func main() {
 	if inputFile == "-" || inputFile == "" {
 		input = os.Stdin
 	} else {
-		var err error
 		file, err := os.Open(inputFile)
 		if err != nil {
 			log.Fatalf("Failed to open %s: %v", inputFile, err)
@@ -67,7 +66,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to parse deep copy: %v", err)
 	}
-	pprof := internal.ConvertDeepCopyToProfile(timeProfile, *excludeProcessInStack, *excludeThreadsInStack, !*excludeIds, processAnnotations)
+	pprof := internal.TimeProfileToPprof(timeProfile, *excludeProcessInStack, *excludeThreadsInStack, !*excludeIds, processAnnotations)
 	if err = pprof.CheckValid(); err != nil {
 		log.Fatalf("Invalid profile: %v\n", err)
 	}
