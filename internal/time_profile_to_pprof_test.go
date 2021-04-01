@@ -49,7 +49,7 @@ func MakeDeepCopy() *TimeProfile {
 var NoAnnotations ProcessAnnotationMap = make(map[uint64](string))
 
 func TestIncludeProcessAndThreads(t *testing.T) {
-	got := ConvertDeepCopyToProfile(MakeDeepCopy(), false, false, true, NoAnnotations)
+	got := TimeProfileToPprof(MakeDeepCopy(), false, false, true, NoAnnotations)
 	if len(got.Sample) != 1 {
 		t.Errorf("Expected only 1 sample, got %v", got)
 	}
@@ -69,7 +69,7 @@ func TestIncludeProcessAndThreads(t *testing.T) {
 }
 
 func TestIncludeProcessAndThreadsNoIds(t *testing.T) {
-	got := ConvertDeepCopyToProfile(MakeDeepCopy(), false, false, false, NoAnnotations)
+	got := TimeProfileToPprof(MakeDeepCopy(), false, false, false, NoAnnotations)
 	if len(got.Sample) != 1 {
 		t.Errorf("Expected only 1 sample, got %v", got)
 	}
@@ -89,7 +89,7 @@ func TestIncludeProcessAndThreadsNoIds(t *testing.T) {
 }
 
 func TestExcludeThreads(t *testing.T) {
-	got := ConvertDeepCopyToProfile(MakeDeepCopy(), false, true, true, NoAnnotations)
+	got := TimeProfileToPprof(MakeDeepCopy(), false, true, true, NoAnnotations)
 	if len(got.Sample) != 1 {
 		t.Errorf("Expected only 1 sample, got %v", got)
 	}
@@ -105,7 +105,7 @@ func TestExcludeThreads(t *testing.T) {
 }
 
 func TestExcludeProcesses(t *testing.T) {
-	got := ConvertDeepCopyToProfile(MakeDeepCopy(), true, false, true, NoAnnotations)
+	got := TimeProfileToPprof(MakeDeepCopy(), true, false, true, NoAnnotations)
 	if len(got.Sample) != 1 {
 		t.Errorf("Expected only 1 sample, got %v", got)
 	}
@@ -121,7 +121,7 @@ func TestExcludeProcesses(t *testing.T) {
 }
 
 func TestExcludeProcessesAndThreads(t *testing.T) {
-	got := ConvertDeepCopyToProfile(MakeDeepCopy(), true, true, true, NoAnnotations)
+	got := TimeProfileToPprof(MakeDeepCopy(), true, true, true, NoAnnotations)
 	if len(got.Sample) != 1 {
 		t.Errorf("Expected only 1 sample, got %v", got)
 	}
@@ -140,7 +140,7 @@ func TestProcessAnnotations(t *testing.T) {
 	annotations := make(map[uint64](string))
 	annotations[123] = "MyAnnotation"
 	annotations[1337] = "ExtraAnnotation"
-	got := ConvertDeepCopyToProfile(MakeDeepCopy(), false, true, true, annotations)
+	got := TimeProfileToPprof(MakeDeepCopy(), false, true, true, annotations)
 	if len(got.Sample) != 1 {
 		t.Errorf("Expected only 1 sample, got %v", got)
 	}

@@ -23,29 +23,7 @@ import (
 	"strings"
 )
 
-// Frame represnets a frame in the stack.
-type Frame struct {
-	Parent       *Frame
-	Children     []*Frame
-	SelfWeightNs int64
-	SymbolName   string
-	Depth        int
-}
 
-func (f *Frame) String() string {
-	return fmt.Sprintf("{SymbolName: %s Weight:%d n_children:%d, Depth:%d}", f.SymbolName, f.SelfWeightNs, len(f.Children), f.Depth)
-}
-
-// Thread represents the second level of the stack.
-type Thread struct {
-	Name   string
-	Tid    uint64
-	Frames []*Frame
-}
-
-func (t *Thread) String() string {
-	return fmt.Sprintf("thread {name: %s tid: %d n_frames: %d}", t.Name, t.Tid, len(t.Frames))
-}
 
 func newThreadFromFrame(f *Frame) (*Thread, error) {
 	if f.Depth != 1 {
@@ -74,17 +52,6 @@ func newThreadFromFrame(f *Frame) (*Thread, error) {
 	}, nil
 }
 
-// Process are the top level of the stack.
-type Process struct {
-	Name    string
-	Pid     uint64
-	Threads []*Thread
-}
-
-func (p *Process) String() string {
-	return fmt.Sprintf("process {name: %s pid: %d n_processes: %d}", p.Name, p.Pid, len(p.Threads))
-}
-
 func newProcessFromFrame(f *Frame) (*Process, error) {
 	if f.Depth != 0 {
 		return nil, fmt.Errorf("Process must have depth 1, was %d: %v", f.Depth, f)
@@ -110,11 +77,6 @@ func newProcessFromFrame(f *Frame) (*Process, error) {
 		Pid:     pid,
 		Threads: make([]*Thread, 0),
 	}, nil
-}
-
-// TimeProfile is a set of processes parsed from the deep copy.
-type TimeProfile struct {
-	Processes []*Process
 }
 
 func parseSelfWeight(selfWeightText string) (int64, error) {
@@ -173,9 +135,6 @@ func parseLine(line string) (*Frame, error) {
 func ParseDeepCopy(file io.Reader) (p *TimeProfile, err error) {
 	p = &TimeProfile{}
 
-	// Parse process TODO: Multiprocess
-	// Todo: Process name is "process_name (<pid>)"
-	// Todo: Thread id is "thread_name 0x<tid>"
 	buf := bufio.NewReader(file)
 	// First line must match header
 	// Now parse away since first line was good.
