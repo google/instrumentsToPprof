@@ -83,7 +83,7 @@ func parseProcess(line string) (p *Process, err error) {
 	}
 	pid, err := strconv.ParseUint(matches[2], 10, 64)
 	return &Process{
-		Pid: pid,
+		Pid:  pid,
 		Name: matches[1],
 	}, nil
 }
@@ -94,10 +94,10 @@ func parseSampleRate(line string) int64 {
 	unit := parts[n-1]
 	period := parts[n-2]
 	// TODO(eshrubs): Implement frequency parsing.
-	if (period != "1" && unit != "millisecond") {
+	if period != "1" && unit != "millisecond" {
 		log.Printf(
 			"WARNING: Period parsing is not yet supported. Defaulting to 1ms period but period of %s %s was detected",
-		 	period, unit)
+			period, unit)
 	}
 	return 1_000_000
 }

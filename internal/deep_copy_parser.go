@@ -23,8 +23,6 @@ import (
 	"strings"
 )
 
-
-
 func newThreadFromFrame(f *Frame) (*Thread, error) {
 	if f.Depth != 1 {
 		return nil, fmt.Errorf("Thread must have depth 1, was %d: %v", f.Depth, f)

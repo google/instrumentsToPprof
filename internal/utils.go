@@ -21,22 +21,22 @@ import (
 
 func frameEquals(t *testing.T, a *Frame, b *Frame) {
 	t.Helper()
-	if (a == nil && b == nil) {
-		return;
+	if a == nil && b == nil {
+		return
 	}
-	if (a == nil || b == nil) {
+	if a == nil || b == nil {
 		t.Fatalf("One frame was nil %v != %v", a, b)
 	}
-	if (a.SymbolName != b.SymbolName) {
+	if a.SymbolName != b.SymbolName {
 		t.Errorf("SymbolName %s != %s", a.SymbolName, b.SymbolName)
 	}
-	if (a.Depth != b.Depth) {
+	if a.Depth != b.Depth {
 		t.Errorf("%s frame depth %d != %d", a.SymbolName, a.Depth, b.Depth)
 	}
-	if (a.SelfWeightNs != b.SelfWeightNs) {
+	if a.SelfWeightNs != b.SelfWeightNs {
 		t.Errorf("%s self weight %d != %d", a.SymbolName, a.SelfWeightNs, b.SelfWeightNs)
 	}
-	if (len(a.Children) != len(b.Children)) {
+	if len(a.Children) != len(b.Children) {
 		t.Fatalf("%s have different children lengths %v != %v", a.SymbolName, a.Children, b.Children)
 	}
 	for i, aChild := range a.Children {
@@ -47,10 +47,10 @@ func frameEquals(t *testing.T, a *Frame, b *Frame) {
 
 func threadEquals(t *testing.T, a *Thread, b *Thread) {
 	t.Helper()
-	if (a.Name != b.Name) {
+	if a.Name != b.Name {
 		t.Errorf("Threads have different names %s != %s", a.Name, b.Name)
 	}
-	if (a.Tid != b.Tid) {
+	if a.Tid != b.Tid {
 		t.Errorf("Thread %s have different tids %d != %d", a.Name, a.Tid, b.Tid)
 	}
 	if len(a.Frames) != len(b.Frames) {
@@ -64,15 +64,15 @@ func threadEquals(t *testing.T, a *Thread, b *Thread) {
 
 func processEquals(t *testing.T, a *Process, b *Process) {
 	t.Helper()
-	if (a.Name != b.Name) {
+	if a.Name != b.Name {
 		t.Errorf("Processes have diferent Names %s != %s", a.Name, b.Name)
 	}
-	if (a.Pid != b.Pid) {
+	if a.Pid != b.Pid {
 		t.Errorf("Process has different pids %d != %d", a.Pid, b.Pid)
 	}
 	if len(a.Threads) != len(b.Threads) {
 		t.Fatalf("Processes have different number of threads %d != %d",
-		len(a.Threads), len(b.Threads))
+			len(a.Threads), len(b.Threads))
 	}
 	for i, aThread := range a.Threads {
 		bThread := b.Threads[i]
@@ -82,9 +82,9 @@ func processEquals(t *testing.T, a *Process, b *Process) {
 
 func timeProfileEquals(t *testing.T, a *TimeProfile, b *TimeProfile) {
 	t.Helper()
-	if (len(a.Processes) != len(b.Processes)) {
+	if len(a.Processes) != len(b.Processes) {
 		t.Fatalf("Time profiles had different number of processes %d != %d",
-		len(a.Processes), len(b.Processes))
+			len(a.Processes), len(b.Processes))
 	}
 	for i, aProcess := range a.Processes {
 		bProcess := b.Processes[i]
