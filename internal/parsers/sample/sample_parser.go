@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // ParseDeepCopy parses the deep copy from the input.
-package internal
+package sample
 
 import (
 	"bufio"
@@ -24,13 +24,15 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/google/instrumentsToPprof/internal"
 )
 
 var (
 	functionRe = regexp.MustCompile(`([+\s!:|]*)(\d+)\s+(.*)$`)
 )
 
-func parseCallLine(line string) (f *Frame, err error) {
+func parseCallLine(line string) (f *internal.Frame, err error) {
 	matches := functionRe.FindStringSubmatch(line)
 	if matches == nil || len(matches) != 4 {
 		return nil, fmt.Errorf("Failed to parse function line: %s", line)
@@ -40,7 +42,7 @@ func parseCallLine(line string) (f *Frame, err error) {
 		return nil, fmt.Errorf("Error parsing function line %s: %v", line, err)
 	}
 
-	return &Frame{
+	return &internal.Frame{
 		SymbolName:   matches[3],
 		SelfWeightNs: hits,
 		// 2 spaces per depth.
@@ -48,7 +50,7 @@ func parseCallLine(line string) (f *Frame, err error) {
 	}, nil
 }
 
-func fixSelfWeight(frame *Frame) error {
+func fixSelfWeight(frame *internal.Frame) error {
 	for _, child := range frame.Children {
 		frame.SelfWeightNs -= child.SelfWeightNs
 		if frame.SelfWeightNs < 0 {
@@ -65,7 +67,7 @@ var (
 	pidRe = regexp.MustCompile(`(.*)\s\[(\d+)\]`)
 )
 
-func parseProcess(line string) (p *Process, err error) {
+func parseProcess(line string) (p *internal.Process, err error) {
 	// Parse process line, which looks like,
 	// Process:         Google Chrome Helper (Renderer) [56690]
 	invalid_line := fmt.Errorf("Not valid process line %s", line)
@@ -82,7 +84,7 @@ func parseProcess(line string) (p *Process, err error) {
 		return nil, fmt.Errorf("Error parsing process and pid from %s: %v", pid_part, matches)
 	}
 	pid, err := strconv.ParseUint(matches[2], 10, 64)
-	return &Process{
+	return &internal.Process{
 		Pid:  pid,
 		Name: matches[1],
 	}, nil
@@ -102,8 +104,8 @@ func parseSampleRate(line string) int64 {
 	return 1_000_000
 }
 
-func ParseSample(file io.Reader) (p *TimeProfile, err error) {
-	p = &TimeProfile{}
+func ParseSample(file io.Reader) (p *internal.TimeProfile, err error) {
+	p = &internal.TimeProfile{}
 
 	buf := bufio.NewReader(file)
 
@@ -153,8 +155,8 @@ func ParseSample(file io.Reader) (p *TimeProfile, err error) {
 		}
 	}
 	process := p.Processes[0]
-	var currentThread *Thread = nil
-	var lastFrame *Frame = nil
+	var currentThread *internal.Thread = nil
+	var lastFrame *internal.Frame = nil
 	for {
 		line, err := buf.ReadString('\n')
 		if line == "" && err != nil {
@@ -178,7 +180,7 @@ func ParseSample(file io.Reader) (p *TimeProfile, err error) {
 		}
 		if currentFrame.Depth == 0 {
 			// New thread!
-			currentThread = &Thread{
+			currentThread = &internal.Thread{
 				Name: currentFrame.SymbolName,
 			}
 			process.Threads = append(process.Threads, currentThread)
@@ -195,7 +197,7 @@ func ParseSample(file io.Reader) (p *TimeProfile, err error) {
 			currentFrame.Parent = lastFrame
 		} else {
 			// Find parent
-			var parent *Frame = lastFrame.Parent
+			var parent *internal.Frame = lastFrame.Parent
 			for {
 				if parent.Depth == currentFrame.Depth-1 {
 					parent.Children = append(parent.Children, currentFrame)
