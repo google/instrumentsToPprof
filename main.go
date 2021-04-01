@@ -22,7 +22,7 @@ import (
 	"os"
 
 	"github.com/google/instrumentsToPprof/internal"
-	"github.com/google/instrumentsToPprof/internal/parsers/instruments"
+	"github.com/google/instrumentsToPprof/internal/parsers"
 )
 
 const help = `usage %[1]s [options] [deepcopy-file]
@@ -63,7 +63,9 @@ func main() {
 		defer file.Close()
 		input = file
 	}
-	timeProfile, err := instruments.ParseDeepCopy(input)
+
+	parser := parsers.MakeDeepCopyParser()
+	timeProfile, err := parser.ParseProfile(input)
 	if err != nil {
 		log.Fatalf("Failed to parse deep copy: %v", err)
 	}

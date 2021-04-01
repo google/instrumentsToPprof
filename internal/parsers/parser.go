@@ -18,8 +18,13 @@ import (
 	"io"
 
 	"github.com/google/instrumentsToPprof/internal"
+	"github.com/google/instrumentsToPprof/internal/parsers/instruments"
 )
 
 type Parser interface {
-	ParseSample(file io.Reader) (p *internal.TimeProfile, err error)
+	ParseProfile(file io.Reader) (p *internal.TimeProfile, err error)
+}
+
+func MakeDeepCopyParser() Parser {
+	return instruments.DeepCopyParser{}
 }

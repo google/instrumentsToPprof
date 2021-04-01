@@ -28,6 +28,15 @@ import (
 	"github.com/google/instrumentsToPprof/internal"
 )
 
+type SampleParser struct {
+	// TODO: Track parsing state in here.
+}
+
+func (p SampleParser) ParseProfile(file io.Reader) (*internal.TimeProfile, error) {
+	// TODO: Implement parsing in the struct.
+	return parseSample(file)
+}
+
 var (
 	functionRe = regexp.MustCompile(`([+\s!:|]*)(\d+)\s+(.*)$`)
 )
@@ -104,7 +113,7 @@ func parseSampleRate(line string) int64 {
 	return 1_000_000
 }
 
-func ParseSample(file io.Reader) (p *internal.TimeProfile, err error) {
+func parseSample(file io.Reader) (p *internal.TimeProfile, err error) {
 	p = &internal.TimeProfile{}
 
 	buf := bufio.NewReader(file)

@@ -25,6 +25,15 @@ import (
 	"github.com/google/instrumentsToPprof/internal"
 )
 
+type DeepCopyParser struct {
+	// TODO: Track parse state here.
+}
+
+func (p DeepCopyParser) ParseProfile(file io.Reader) (*internal.TimeProfile, error) {
+	// TODO: Implement parsing in the struct.
+	return parseDeepCopy(file)
+}
+
 func newThreadFromFrame(f *internal.Frame) (*internal.Thread, error) {
 	if f.Depth != 1 {
 		return nil, fmt.Errorf("Thread must have depth 1, was %d: %v", f.Depth, f)
@@ -131,8 +140,8 @@ func parseLine(line string) (*internal.Frame, error) {
 	}, nil
 }
 
-// ParseDeepCopy parses the deep copy from the input.
-func ParseDeepCopy(file io.Reader) (p *internal.TimeProfile, err error) {
+// parseDeepCopy parses the deep copy from the input.
+func parseDeepCopy(file io.Reader) (p *internal.TimeProfile, err error) {
 	p = &internal.TimeProfile{}
 
 	buf := bufio.NewReader(file)
