@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package internal
+package instruments
 
 import (
 	"bufio"
@@ -21,9 +21,20 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/google/instrumentsToPprof/internal"
 )
 
-func newThreadFromFrame(f *Frame) (*Thread, error) {
+type DeepCopyParser struct {
+	// TODO: Track parse state here.
+}
+
+func (p DeepCopyParser) ParseProfile(file io.Reader) (*internal.TimeProfile, error) {
+	// TODO: Implement parsing in the struct.
+	return parseDeepCopy(file)
+}
+
+func newThreadFromFrame(f *internal.Frame) (*internal.Thread, error) {
 	if f.Depth != 1 {
 		return nil, fmt.Errorf("Thread must have depth 1, was %d: %v", f.Depth, f)
 	}
@@ -32,10 +43,10 @@ func newThreadFromFrame(f *Frame) (*Thread, error) {
 	matches := threadRe.FindStringSubmatch(f.SymbolName)
 	if len(matches) != 3 {
 		fmt.Printf("WARNING: Error parsing thread '%s'. Skipping thread name parsing.\n", f.SymbolName)
-		return &Thread{
+		return &internal.Thread{
 			Name:   f.SymbolName,
 			Tid:    0,
-			Frames: make([]*Frame, 0),
+			Frames: make([]*internal.Frame, 0),
 		}, nil
 	}
 	tid, err := strconv.ParseUint(matches[2], 16, 64)
@@ -43,14 +54,14 @@ func newThreadFromFrame(f *Frame) (*Thread, error) {
 		fmt.Printf("WARNING: Error parsing tid '%s'. Skipping thread id parsing. %v\n", matches[2], err)
 		tid = 0
 	}
-	return &Thread{
+	return &internal.Thread{
 		Name:   matches[1],
 		Tid:    tid,
-		Frames: make([]*Frame, 0),
+		Frames: make([]*internal.Frame, 0),
 	}, nil
 }
 
-func newProcessFromFrame(f *Frame) (*Process, error) {
+func newProcessFromFrame(f *internal.Frame) (*internal.Process, error) {
 	if f.Depth != 0 {
 		return nil, fmt.Errorf("Process must have depth 1, was %d: %v", f.Depth, f)
 	}
@@ -59,10 +70,10 @@ func newProcessFromFrame(f *Frame) (*Process, error) {
 	matches := processRe.FindStringSubmatch(f.SymbolName)
 	if len(matches) != 3 {
 		fmt.Printf("WARNING: Error parsing process '%s'. Skipping process name parsing.\n", f.SymbolName)
-		return &Process{
+		return &internal.Process{
 			Name:    f.SymbolName,
 			Pid:     0,
-			Threads: make([]*Thread, 0),
+			Threads: make([]*internal.Thread, 0),
 		}, nil
 	}
 	pid, err := strconv.ParseUint(matches[2], 10, 64)
@@ -70,10 +81,10 @@ func newProcessFromFrame(f *Frame) (*Process, error) {
 		fmt.Printf("WARNING: Error parsing pid '%s'. Skipping process id parsing. %v\n", matches[2], err)
 		pid = 0
 	}
-	return &Process{
+	return &internal.Process{
 		Name:    matches[1],
 		Pid:     pid,
-		Threads: make([]*Thread, 0),
+		Threads: make([]*internal.Thread, 0),
 	}, nil
 }
 
@@ -102,7 +113,7 @@ func parseSelfWeight(selfWeightText string) (int64, error) {
 	return int64(value), nil
 }
 
-func parseLine(line string) (*Frame, error) {
+func parseLine(line string) (*internal.Frame, error) {
 	// Each line is tab seperated into 4 fields
 	// 1. Total weight "254.00 ms   22.5%"
 	// 2. Self weight "2.00ms"
@@ -120,25 +131,25 @@ func parseLine(line string) (*Frame, error) {
 	}
 	name := strings.TrimLeft(fields[3], " ")
 	depth := len(fields[3]) - len(name)
-	return &Frame{
+	return &internal.Frame{
 		Parent:       nil,
-		Children:     make([]*Frame, 0),
+		Children:     make([]*internal.Frame, 0),
 		SelfWeightNs: weight,
 		SymbolName:   name,
 		Depth:        depth,
 	}, nil
 }
 
-// ParseDeepCopy parses the deep copy from the input.
-func ParseDeepCopy(file io.Reader) (p *TimeProfile, err error) {
-	p = &TimeProfile{}
+// parseDeepCopy parses the deep copy from the input.
+func parseDeepCopy(file io.Reader) (p *internal.TimeProfile, err error) {
+	p = &internal.TimeProfile{}
 
 	buf := bufio.NewReader(file)
 	// First line must match header
 	// Now parse away since first line was good.
-	var lastFrame *Frame = nil
-	var currentProcess *Process = nil
-	var currentThread *Thread = nil
+	var lastFrame *internal.Frame = nil
+	var currentProcess *internal.Process = nil
+	var currentThread *internal.Thread = nil
 	for {
 		line, err := buf.ReadString('\n')
 		if line == "" && err != nil {
@@ -223,7 +234,7 @@ func ParseDeepCopy(file io.Reader) (p *TimeProfile, err error) {
 				currentFrame.Parent = lastFrame
 			} else {
 				// Find parent
-				var parent *Frame = lastFrame.Parent
+				var parent *internal.Frame = lastFrame.Parent
 				for {
 					if parent.Depth == currentFrame.Depth-1 {
 						parent.Children = append(parent.Children, currentFrame)

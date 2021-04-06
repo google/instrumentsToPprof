@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package internal
+package sample
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/google/instrumentsToPprof/internal"
 )
 
 const (
@@ -54,47 +56,47 @@ Call graph:
 
 func TestSampleParsing(t *testing.T) {
 	r := strings.NewReader(validDeepCopy)
-	timeProfile, err := ParseSample(r)
+	timeProfile, err := parseSample(r)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
 	}
 
-	expected := &TimeProfile{
-		Processes: []*Process{
+	expected := &internal.TimeProfile{
+		Processes: []*internal.Process{
 			{
 				Name: "ProcessName",
 				Pid:  56690,
-				Threads: []*Thread{
+				Threads: []*internal.Thread{
 					{
 						Name: "Thread1 DispatchQueue1: com.apple.main-thread  (serial)",
 						Tid:  0,
-						Frames: []*Frame{
+						Frames: []*internal.Frame{
 							{
 								SymbolName:   "start",
 								Depth:        1,
 								SelfWeightNs: 0,
-								Children: []*Frame{
+								Children: []*internal.Frame{
 									{
 										SymbolName:   "eatLunch",
 										Depth:        2,
 										SelfWeightNs: 0,
-										Children: []*Frame{
+										Children: []*internal.Frame{
 											{
 												SymbolName:   "makeSandwhich",
 												Depth:        3,
 												SelfWeightNs: 1_000_000,
-												Children: []*Frame{
+												Children: []*internal.Frame{
 													{
 														SymbolName:   "getBread(BreadType)",
 														Depth:        4,
 														SelfWeightNs: 1_000_000,
-														Children:     []*Frame{},
+														Children:     []*internal.Frame{},
 													}, {
 														SymbolName:   "getCheese(CheeseType)",
 														Depth:        4,
 														SelfWeightNs: 1_000_000,
-														Children:     []*Frame{},
+														Children:     []*internal.Frame{},
 													},
 												},
 											},
@@ -102,7 +104,7 @@ func TestSampleParsing(t *testing.T) {
 												SymbolName:   "eatFood(Food const&)",
 												Depth:        3,
 												SelfWeightNs: 1_000_000,
-												Children:     []*Frame{},
+												Children:     []*internal.Frame{},
 											},
 										},
 									},
@@ -113,12 +115,12 @@ func TestSampleParsing(t *testing.T) {
 					{
 						Name: "Thread2 DispatchQueue1: com.apple.main-thread  (serial)",
 						Tid:  0,
-						Frames: []*Frame{
+						Frames: []*internal.Frame{
 							{
 								SymbolName:   "listenToMusic()",
 								Depth:        1,
 								SelfWeightNs: 1_000_000,
-								Children:     []*Frame{},
+								Children:     []*internal.Frame{},
 							},
 						},
 					},
@@ -127,5 +129,5 @@ func TestSampleParsing(t *testing.T) {
 		},
 	}
 
-	timeProfileEquals(t, timeProfile, expected)
+	internal.TimeProfileEquals(t, timeProfile, expected)
 }

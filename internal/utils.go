@@ -80,7 +80,7 @@ func processEquals(t *testing.T, a *Process, b *Process) {
 	}
 }
 
-func timeProfileEquals(t *testing.T, a *TimeProfile, b *TimeProfile) {
+func TimeProfileEquals(t *testing.T, a *TimeProfile, b *TimeProfile) {
 	t.Helper()
 	if len(a.Processes) != len(b.Processes) {
 		t.Fatalf("Time profiles had different number of processes %d != %d",
