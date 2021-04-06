@@ -31,9 +31,5 @@ func MakeSampleParser(file io.Reader) (Parser, error) {
 }
 
 func MakeDeepCopyParser(file io.Reader) (Parser, error) {
-	d, err := instruments.MakeDeepCopyParser(file)
-	if err != nil {
-		return nil, err
-	}
-	return d, nil
+	return instruments.MakeDeepCopyParser(file)
 }
