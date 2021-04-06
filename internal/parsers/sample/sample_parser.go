@@ -29,12 +29,126 @@ import (
 )
 
 type SampleParser struct {
-	// TODO: Track parsing state in here.
+	lines []string
 }
 
-func (p SampleParser) ParseProfile(file io.Reader) (*internal.TimeProfile, error) {
+func MakeSampleParser(file io.Reader) (p SampleParser, err error) {
+	p = SampleParser{
+		lines: []string{},
+	}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		p.lines = append(p.lines, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return p, err
+	}
+	return p, nil
+}
+
+func (s SampleParser) ParseProfile() (p *internal.TimeProfile, err error) {
 	// TODO: Implement parsing in the struct.
-	return parseSample(file)
+	p = &internal.TimeProfile{}
+
+	// Default sample rate of 1ms == 1,000,000 ns
+	var sampleRate int64 = 1_000_000
+	// TODO(eshr): Parse sample rate
+	// Parse header
+	var lastIndex int
+	for i, line := range s.lines {
+		lastIndex = i
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "Analysis of sampling") {
+			sampleRate = parseSampleRate(line)
+		}
+		if strings.HasPrefix(line, "Report Version") {
+			parts := strings.Split(line, ":")
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("Could not parse report version line: %s", line)
+			}
+			reportVersion, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+			if err != nil {
+				return nil, fmt.Errorf("Error parsing report version: %v", err)
+			}
+			if reportVersion != 7 {
+				return nil, fmt.Errorf("Report Version was %d, only report version 7 is supported", reportVersion)
+			}
+		}
+		if strings.HasPrefix(line, "Process") {
+			if len(p.Processes) > 0 {
+				return nil, errors.New("More than one process line present. Currupt sample file")
+			}
+			process, err := parseProcess(line)
+			if err != nil {
+				return nil, err
+			}
+			p.Processes = append(p.Processes, process)
+		}
+		if strings.HasPrefix(line, "Call graph") {
+			break
+		}
+	}
+	process := p.Processes[0]
+	var currentThread *internal.Thread = nil
+	var lastFrame *internal.Frame = nil
+	if len(s.lines) < lastIndex {
+		return nil, errors.New("Reached the end of the input before parsing the call graph.")
+	}
+	for _, line := range s.lines[lastIndex+1:] {
+		line = strings.TrimSpace(line)
+		// Call stack is over
+		if line == "" {
+			break
+		}
+		// Parse a function.
+		currentFrame, err := parseCallLine(line)
+		if err != nil {
+			return nil, err
+		}
+		if currentFrame.Depth == 0 {
+			// New thread!
+			currentThread = &internal.Thread{
+				Name: currentFrame.SymbolName,
+			}
+			process.Threads = append(process.Threads, currentThread)
+		} else if currentFrame.Depth == 1 {
+			// First frame in thread
+			currentThread.Frames = append(currentThread.Frames, currentFrame)
+		} else if currentFrame.Depth > lastFrame.Depth {
+			// Child frame
+			if currentFrame.Depth-lastFrame.Depth != 1 {
+				return nil, fmt.Errorf("Skipped frame depth from frame %s to %s",
+					lastFrame.SymbolName, currentFrame.SymbolName)
+			}
+			lastFrame.Children = append(lastFrame.Children, currentFrame)
+			currentFrame.Parent = lastFrame
+		} else {
+			// Find parent
+			var parent *internal.Frame = lastFrame.Parent
+			for {
+				if parent.Depth == currentFrame.Depth-1 {
+					parent.Children = append(parent.Children, currentFrame)
+					currentFrame.Parent = parent
+					break
+				}
+				parent = parent.Parent
+			}
+		}
+		currentFrame.SelfWeightNs *= sampleRate
+		lastFrame = currentFrame
+	}
+
+	// Fix weights
+	for _, thread := range process.Threads {
+		for _, frame := range thread.Frames {
+			err := fixSelfWeight(frame)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return p, nil
 }
 
 var (
@@ -111,124 +225,4 @@ func parseSampleRate(line string) int64 {
 			period, unit)
 	}
 	return 1_000_000
-}
-
-func parseSample(file io.Reader) (p *internal.TimeProfile, err error) {
-	p = &internal.TimeProfile{}
-
-	buf := bufio.NewReader(file)
-
-	// Default sample rate of 1ms == 1,000,000 ns
-	var sampleRate int64 = 1_000_000
-	// TODO(eshr): Parse sample rate
-	// Parse header
-	for {
-		line, err := buf.ReadString('\n')
-		if line == "" && err != nil {
-			// Break once end of file.
-			if err == io.EOF {
-				return nil, errors.New("Could not create trace, could not find the 'Call Graph' line.")
-			}
-			return nil, err
-		}
-
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "Analysis of sampling") {
-			sampleRate = parseSampleRate(line)
-		}
-		if strings.HasPrefix(line, "Report Version") {
-			parts := strings.Split(line, ":")
-			if len(parts) != 2 {
-				return nil, fmt.Errorf("Could not parse report version line: %s", line)
-			}
-			reportVersion, err := strconv.Atoi(strings.TrimSpace(parts[1]))
-			if err != nil {
-				return nil, fmt.Errorf("Error parsing report version: %v", err)
-			}
-			if reportVersion != 7 {
-				return nil, fmt.Errorf("Report Version was %d, only report version 7 is supported", reportVersion)
-			}
-		}
-		if strings.HasPrefix(line, "Process") {
-			if len(p.Processes) > 0 {
-				return nil, errors.New("More than one process line present. Currupt sample file")
-			}
-			process, err := parseProcess(line)
-			if err != nil {
-				return nil, err
-			}
-			p.Processes = append(p.Processes, process)
-		}
-		if strings.HasPrefix(line, "Call graph") {
-			break
-		}
-	}
-	process := p.Processes[0]
-	var currentThread *internal.Thread = nil
-	var lastFrame *internal.Frame = nil
-	for {
-		line, err := buf.ReadString('\n')
-		if line == "" && err != nil {
-			// Break once end of file.
-			if err == io.EOF {
-				break
-			}
-			return nil, err
-		}
-		line = strings.TrimSpace(line)
-
-		// Call stack is over
-		if line == "" {
-			break
-		}
-
-		// Parse a function.
-		currentFrame, err := parseCallLine(line)
-		if err != nil {
-			return nil, err
-		}
-		if currentFrame.Depth == 0 {
-			// New thread!
-			currentThread = &internal.Thread{
-				Name: currentFrame.SymbolName,
-			}
-			process.Threads = append(process.Threads, currentThread)
-		} else if currentFrame.Depth == 1 {
-			// First frame in thread
-			currentThread.Frames = append(currentThread.Frames, currentFrame)
-		} else if currentFrame.Depth > lastFrame.Depth {
-			// Child frame
-			if currentFrame.Depth-lastFrame.Depth != 1 {
-				return nil, fmt.Errorf("Skipped frame depth from frame %s to %s",
-					lastFrame.SymbolName, currentFrame.SymbolName)
-			}
-			lastFrame.Children = append(lastFrame.Children, currentFrame)
-			currentFrame.Parent = lastFrame
-		} else {
-			// Find parent
-			var parent *internal.Frame = lastFrame.Parent
-			for {
-				if parent.Depth == currentFrame.Depth-1 {
-					parent.Children = append(parent.Children, currentFrame)
-					currentFrame.Parent = parent
-					break
-				}
-				parent = parent.Parent
-			}
-		}
-		currentFrame.SelfWeightNs *= sampleRate
-		lastFrame = currentFrame
-	}
-
-	// Fix weights
-	for _, thread := range process.Threads {
-		for _, frame := range thread.Frames {
-			err := fixSelfWeight(frame)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return p, nil
 }

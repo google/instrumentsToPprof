@@ -32,7 +32,12 @@ func TestDeepCopyParsing(t *testing.T) {
 		"\n"
 
 	r := strings.NewReader(deepCopy)
-	got, err := parseDeepCopy(r)
+	parser, err := MakeDeepCopyParser(r)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	got, err := parser.ParseProfile()
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
@@ -77,7 +82,12 @@ func TestInvalidThreadAndProcessNames(t *testing.T) {
 		"\n"
 
 	r := strings.NewReader(deepCopy)
-	got, err := parseDeepCopy(r)
+	parser, err := MakeDeepCopyParser(r)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	got, err := parser.ParseProfile()
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
