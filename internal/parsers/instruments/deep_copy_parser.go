@@ -25,13 +25,123 @@ import (
 	"github.com/google/instrumentsToPprof/internal"
 )
 
-type DeepCopyParser struct {
-	// TODO: Track parse state here.
+func MakeDeepCopyParser(file io.Reader) (d DeepCopyParser, err error) {
+	d = DeepCopyParser{
+		lines: []string{},
+	}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		d.lines = append(d.lines, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return d, err
+	}
+	return d, nil
 }
 
-func (p DeepCopyParser) ParseProfile(file io.Reader) (*internal.TimeProfile, error) {
+type DeepCopyParser struct {
+	lines []string
+}
+
+func (d DeepCopyParser) ParseProfile() (p *internal.TimeProfile, err error) {
 	// TODO: Implement parsing in the struct.
-	return parseDeepCopy(file)
+	p = &internal.TimeProfile{}
+
+	// First line must match header
+	// Now parse away since first line was good.
+	var lastFrame *internal.Frame = nil
+	var currentProcess *internal.Process = nil
+	var currentThread *internal.Thread = nil
+	for _, line := range d.lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			// Process end. Start again with new process.
+			currentProcess = nil
+			currentThread = nil
+			lastFrame = nil
+			continue
+		}
+		// Try to fetch process
+		if currentProcess == nil {
+			// Header line
+			if line == "Weight\tSelf Weight\t\tSymbol Name" {
+				continue
+			}
+			f, err := parseLine(line)
+			if err != nil {
+				return nil, fmt.Errorf("Error parsing process frame: %v", err)
+			}
+			currentProcess, err = newProcessFromFrame(f)
+			if err != nil {
+				return nil, err
+			}
+			p.Processes = append(p.Processes, currentProcess)
+		} else if currentThread == nil {
+			f, err := parseLine(line)
+			if err != nil {
+				return nil, fmt.Errorf("Error parsing thread frame: %v", err)
+			}
+			currentThread, err = newThreadFromFrame(f)
+			if err != nil {
+				return nil, err
+			}
+			currentProcess.Threads = append(currentProcess.Threads, currentThread)
+		} else {
+			// Parse frame
+			currentFrame, err := parseLine(line)
+			if err != nil {
+				return nil, err
+			}
+			if currentFrame.Depth == 0 {
+				return nil, fmt.Errorf("Unexpected new process, should have occurred after header line %s", line)
+			}
+			if currentFrame.Depth == 1 {
+				// New thread
+				currentThread, err = newThreadFromFrame(currentFrame)
+				if err != nil {
+					return nil, fmt.Errorf("Error parsing thread frame: %v", err)
+				}
+				currentProcess.Threads = append(currentProcess.Threads, currentThread)
+				lastFrame = nil
+				continue
+			}
+			if lastFrame == nil {
+				// First frame in thread.
+				if currentFrame.Depth != 2 {
+					return nil, fmt.Errorf("First frame in thread should have depth 2, was %d: %s", currentFrame.Depth, line)
+				}
+				currentThread.Frames = append(currentThread.Frames, currentFrame)
+				lastFrame = currentFrame
+				continue
+			}
+			if currentFrame.Depth == 2 {
+				// New thread frame, this will be a parent frame.
+				currentThread.Frames = append(currentThread.Frames, currentFrame)
+				lastFrame = currentFrame
+				continue
+			}
+			if currentFrame.Depth > lastFrame.Depth {
+				if currentFrame.Depth-lastFrame.Depth != 1 {
+					return nil, fmt.Errorf("Skip children somehow?: %s", line)
+				}
+				lastFrame.Children = append(lastFrame.Children, currentFrame)
+				currentFrame.Parent = lastFrame
+			} else {
+				// Find parent
+				var parent *internal.Frame = lastFrame.Parent
+				for {
+					if parent.Depth == currentFrame.Depth-1 {
+						parent.Children = append(parent.Children, currentFrame)
+						currentFrame.Parent = parent
+						break
+					}
+					parent = parent.Parent
+				}
+			}
+			lastFrame = currentFrame
+		}
+	}
+	return p, nil
 }
 
 func newThreadFromFrame(f *internal.Frame) (*internal.Thread, error) {
@@ -138,114 +248,4 @@ func parseLine(line string) (*internal.Frame, error) {
 		SymbolName:   name,
 		Depth:        depth,
 	}, nil
-}
-
-// parseDeepCopy parses the deep copy from the input.
-func parseDeepCopy(file io.Reader) (p *internal.TimeProfile, err error) {
-	p = &internal.TimeProfile{}
-
-	buf := bufio.NewReader(file)
-	// First line must match header
-	// Now parse away since first line was good.
-	var lastFrame *internal.Frame = nil
-	var currentProcess *internal.Process = nil
-	var currentThread *internal.Thread = nil
-	for {
-		line, err := buf.ReadString('\n')
-		if line == "" && err != nil {
-			// Break once end of file.
-			if err == io.EOF {
-				break
-			}
-			return nil, err
-		}
-		line = strings.TrimSpace(line)
-		if line == "" {
-			// Process end. Start again with new process.
-			currentProcess = nil
-			currentThread = nil
-			lastFrame = nil
-			continue
-		}
-		// Try to fetch process
-		if currentProcess == nil {
-			// Header line
-			if line == "Weight\tSelf Weight\t\tSymbol Name" {
-				continue
-			}
-			f, err := parseLine(line)
-			if err != nil {
-				return nil, fmt.Errorf("Error parsing process frame: %v", err)
-			}
-			currentProcess, err = newProcessFromFrame(f)
-			if err != nil {
-				return nil, err
-			}
-			p.Processes = append(p.Processes, currentProcess)
-		} else if currentThread == nil {
-			f, err := parseLine(line)
-			if err != nil {
-				return nil, fmt.Errorf("Error parsing thread frame: %v", err)
-			}
-			currentThread, err = newThreadFromFrame(f)
-			if err != nil {
-				return nil, err
-			}
-			currentProcess.Threads = append(currentProcess.Threads, currentThread)
-		} else {
-			// Parse frame
-			currentFrame, err := parseLine(line)
-			if err != nil {
-				return nil, err
-			}
-			if currentFrame.Depth == 0 {
-				return nil, fmt.Errorf("Unexpected new process, should have occurred after header line %s", line)
-			}
-			if currentFrame.Depth == 1 {
-				// New thread
-				currentThread, err = newThreadFromFrame(currentFrame)
-				if err != nil {
-					return nil, fmt.Errorf("Error parsing thread frame: %v", err)
-				}
-				currentProcess.Threads = append(currentProcess.Threads, currentThread)
-				lastFrame = nil
-				continue
-			}
-			if lastFrame == nil {
-				// First frame in thread.
-				if currentFrame.Depth != 2 {
-					return nil, fmt.Errorf("First frame in thread should have depth 2, was %d: %s", currentFrame.Depth, line)
-				}
-				currentThread.Frames = append(currentThread.Frames, currentFrame)
-				lastFrame = currentFrame
-				continue
-			}
-			if currentFrame.Depth == 2 {
-				// New thread frame, this will be a parent frame.
-				currentThread.Frames = append(currentThread.Frames, currentFrame)
-				lastFrame = currentFrame
-				continue
-			}
-			if currentFrame.Depth > lastFrame.Depth {
-				if currentFrame.Depth-lastFrame.Depth != 1 {
-					return nil, fmt.Errorf("Skip children somehow?: %s", line)
-				}
-				lastFrame.Children = append(lastFrame.Children, currentFrame)
-				currentFrame.Parent = lastFrame
-			} else {
-				// Find parent
-				var parent *internal.Frame = lastFrame.Parent
-				for {
-					if parent.Depth == currentFrame.Depth-1 {
-						parent.Children = append(parent.Children, currentFrame)
-						currentFrame.Parent = parent
-						break
-					}
-					parent = parent.Parent
-				}
-			}
-			lastFrame = currentFrame
-		}
-	}
-	return p, nil
 }

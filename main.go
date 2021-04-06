@@ -64,8 +64,11 @@ func main() {
 		input = file
 	}
 
-	parser := parsers.MakeDeepCopyParser()
-	timeProfile, err := parser.ParseProfile(input)
+	parser, err := parsers.MakeDeepCopyParser(input)
+	if err != nil {
+		log.Fatalf("Failed to create parser: %v", err)
+	}
+	timeProfile, err := parser.ParseProfile()
 	if err != nil {
 		log.Fatalf("Failed to parse deep copy: %v", err)
 	}

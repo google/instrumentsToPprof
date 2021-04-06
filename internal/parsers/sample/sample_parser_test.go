@@ -56,7 +56,12 @@ Call graph:
 
 func TestSampleParsing(t *testing.T) {
 	r := strings.NewReader(validDeepCopy)
-	timeProfile, err := parseSample(r)
+	parser, err := MakeSampleParser(r)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	timeProfile, err := parser.ParseProfile()
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
