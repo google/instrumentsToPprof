@@ -1,4 +1,6 @@
 *.pb.gz
 *.paste
+*.sample
 
+build/
 .vscode/
