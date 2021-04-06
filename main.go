@@ -25,22 +25,42 @@ import (
 	"github.com/google/instrumentsToPprof/internal/parsers"
 )
 
-const help = `usage %[1]s [options] [deepcopy-file]
+const (
+	help = `usage %[1]s [options] [deepcopy-file]
 Converts a the deep copy output from Instrument's Time Profile tool to a pprof profile.
 
 If deepcopy-file is empty, reads from stdin. To perform a conversion from the clipbaord, use
 	$ pbpaste | %[1]s
-
 Flags:
 `
+	formatHelp = `The format of the input. Use,
+--format=sample for parsing sample files
+--format=instruments for instruments deep-copy. This is the default.
+
+Sample copying is a new feature and may have issues. File an issue on github in that case.
+`
+	pidTagHelp = `Annotated a process with pid with the given tag. Format is <pid>:<tag>.
+For example, 'My Process Name [pid: 123] [Annotation]' with -pidTag=123:Annotation
+`
+)
+
+const (
+	kSample              string = "sample"
+	kInstrumentsDeepCopy string = "instruments"
+)
+
+type makeParserFn func(io.Reader) (parsers.Parser, error)
 
 func main() {
 	var outputFilename = flag.String("output", "profile.pb.gz", "Output file of the pprof profile.")
-	var excludeProcessInStack = flag.Bool("exclude-process-from-stack", false, "Excludes processes from all stack traces.")
-	var excludeThreadsInStack = flag.Bool("exclude-threads-from-stack", false, "Excludes threads from all stack traces.")
+	var excludeProcessInStack = flag.Bool("exclude-process-from-stack",
+		false, "Excludes processes from all stack traces.")
+	var excludeThreadsInStack = flag.Bool("exclude-threads-from-stack",
+		false, "Excludes threads from all stack traces.")
 	var excludeIds = flag.Bool("exclude-ids", false, "Excludes ids from threads and processes")
+	var format = flag.String("format", "instruments", formatHelp)
 	var processAnnotations internal.ProcessAnnotationMap = make(map[uint64](string))
-	flag.Var(&processAnnotations, "pidTag", "Annotated a process with pid with the given tag. Format is <pid>:<tag>. For example, 'My Process Name [pid: 123] [Annotation]' with -pidTag=123:Annotation")
+	flag.Var(&processAnnotations, "pidTag", pidTagHelp)
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), help, os.Args[0])
 		flag.PrintDefaults()
@@ -64,15 +84,24 @@ func main() {
 		input = file
 	}
 
-	parser, err := parsers.MakeDeepCopyParser(input)
+	var parserFn makeParserFn
+	if *format == kSample {
+		parserFn = parsers.MakeSampleParser
+	} else if *format == kInstrumentsDeepCopy {
+		parserFn = parsers.MakeDeepCopyParser
+	} else {
+		log.Fatalf("Invalid file format specified: %s", *format)
+	}
+	parser, err := parserFn(input)
 	if err != nil {
-		log.Fatalf("Failed to create parser: %v", err)
+		log.Fatal(err)
 	}
 	timeProfile, err := parser.ParseProfile()
 	if err != nil {
 		log.Fatalf("Failed to parse deep copy: %v", err)
 	}
-	pprof := internal.TimeProfileToPprof(timeProfile, *excludeProcessInStack, *excludeThreadsInStack, !*excludeIds, processAnnotations)
+	pprof := internal.TimeProfileToPprof(timeProfile, *excludeProcessInStack,
+		*excludeThreadsInStack, !*excludeIds, processAnnotations)
 	if err = pprof.CheckValid(); err != nil {
 		log.Fatalf("Invalid profile: %v\n", err)
 	}
