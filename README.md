@@ -29,7 +29,7 @@ must be from the Time Profile tool in instruments, and the selection roots must 
 
 To get started, make a trace, either using `xctrace` or in the Instruments app.
 ```
-xcrun -r xctrace record --template 'Time Profiler' --all-processes --time-limit 5s --output 'profile.trace'
+$ xcrun -r xctrace record --template 'Time Profiler' --all-processes --time-limit 5s --output 'profile.trace'
 ```
 
 Open the trace in the Instruments tool, and select the process that you want to have converted.
@@ -47,6 +47,22 @@ Alternatively, one can produce the `profile.pb.gz` by piping the clipboard direc
 
 ```
 $ pbpaste | instrumentsToPpof
+```
+
+## Producing a pprof from sample
+
+`instrumentsToPprof` also supports output from the `sample` command on Mac.
+
+To get a sample, run
+
+```
+$ sample <pid> -f <output-file>
+```
+
+and to produce a pprof from that sample, use the `--format` flag
+
+```
+$ instrumentsToPprof --format=sample <output-file>
 ```
 
 # Disclaimer
