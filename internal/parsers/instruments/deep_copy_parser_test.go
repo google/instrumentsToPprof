@@ -19,6 +19,37 @@ import (
 	"testing"
 )
 
+func TestFrameTimeUnitParsing(t *testing.T) {
+	type testCase struct {
+		input string
+		expectedNs int64
+	}
+	cases := []testCase{
+		{
+			input: "10.0 s",
+			expectedNs: 10_000_000_000,
+		},
+		{
+			input: "100.0 ms",
+			expectedNs: 100_000_000,
+		},
+		{
+			// Common when using high speed profiling.
+			input: "100.00 µs",
+			expectedNs: 100_000,
+		},
+	}
+
+	for _, c := range cases {
+		selfWeightNs, err := parseSelfWeight(c.input)
+		if err != nil {
+			t.Error(err)
+		} else if selfWeightNs != c.expectedNs {
+			t.Errorf("Parsing '%s' resulted %d ns. Expected %d ns.", c.input, selfWeightNs, c.expectedNs)
+		}
+	}
+}
+
 func TestDeepCopyParsing(t *testing.T) {
 	const deepCopy = "Weight\tSelf Weight\t\tSymbol Name\n" +
 		"10.0 s  100%\t0 s\t \tMain Process (123)\n" +
