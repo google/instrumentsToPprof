@@ -20,6 +20,7 @@ import (
 	"github.com/google/instrumentsToPprof/internal"
 	"github.com/google/instrumentsToPprof/internal/parsers/instruments"
 	"github.com/google/instrumentsToPprof/internal/parsers/sample"
+	"github.com/google/instrumentsToPprof/internal/parsers/collapsed"
 )
 
 type Parser interface {
@@ -32,4 +33,8 @@ func MakeSampleParser(file io.Reader) (Parser, error) {
 
 func MakeDeepCopyParser(file io.Reader) (Parser, error) {
 	return instruments.MakeDeepCopyParser(file)
+}
+
+func MakeCollapsedParser(file io.Reader) (Parser, error) {
+	return collapsed.MakeCollapsedParser(file)
 }

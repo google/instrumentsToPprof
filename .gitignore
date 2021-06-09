@@ -4,3 +4,7 @@
 
 build/
 .vscode/
+
+*.swp
+
+instrumentsToPprof

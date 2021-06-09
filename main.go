@@ -47,6 +47,7 @@ For example, 'My Process Name [pid: 123] [Annotation]' with -pidTag=123:Annotati
 const (
 	kSample              string = "sample"
 	kInstrumentsDeepCopy string = "instruments"
+	kInstrumentsCollapsed string = "collapsed"
 )
 
 type makeParserFn func(io.Reader) (parsers.Parser, error)
@@ -89,6 +90,8 @@ func main() {
 		parserFn = parsers.MakeSampleParser
 	} else if *format == kInstrumentsDeepCopy {
 		parserFn = parsers.MakeDeepCopyParser
+	} else if *format == kInstrumentsCollapsed {
+		parserFn = parsers.MakeCollapsedParser
 	} else {
 		log.Fatalf("Invalid file format specified: %s", *format)
 	}
