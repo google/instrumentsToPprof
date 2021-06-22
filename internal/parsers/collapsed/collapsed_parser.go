@@ -16,6 +16,7 @@ package collapsed
 
 import (
   "bufio"
+  "fmt"
   "io"
   "strconv"
   "strings"
@@ -80,9 +81,15 @@ func parseCallLine(line string) (f *internal.Frame, err error) {
 
   // The frequence is everything after the space.
   frequence, err := strconv.ParseInt(line[sep+1:len(line)], 10, 64)
+  if err != nil{
+    return nil, nil
+  }
 
   // The semi-colon separated functions are everything before the semi-colon.
   funs := strings.Split(line[0:sep], ";")
+  if len(funs) == 0 {
+    return nil, fmt.Errorf("Error parsing function names.")
+  }
 
   // Collapsed stack format is explicit about weights so assign a weight of
   // zero to everything expect the leaf function.
