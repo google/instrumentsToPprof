@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2021 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ package collapsed
 
 import (
 	"bufio"
-  //"fmt"
   "io"
   "strconv"
   "strings"
@@ -38,12 +37,14 @@ func MakeCollapsedParser(file io.Reader) (d CollapsedParser, err error) {
 	return d, nil
 }
 
+// This parser supports the "collapsed stack" file format where each line of 
+// the file represents a full stack sample. This is a format commonly used
+// to generate flamegraphs.
 type CollapsedParser struct {
 	lines []string
 }
 
 func (d CollapsedParser) ParseProfile() (p *internal.TimeProfile, err error) {
-	// TODO: Implement parsing in the struct.
 	p = &internal.TimeProfile{}
   
   // Collapsed format merges all processes so just create a dummy one.
@@ -72,17 +73,24 @@ func (d CollapsedParser) ParseProfile() (p *internal.TimeProfile, err error) {
 
 func parseCallLine(line string) (f *internal.Frame, err error) {
 
+  // Find the separating space in the line.
   sep := strings.LastIndex(line, " ") 
 
+  // The frequence is everything after the space.
   frequence, err := strconv.ParseInt(line[sep+1:len(line)], 10, 64)
+
+  // The semi-colon separated functions are everything before the semi-colon.
   funs := strings.Split(line[0:sep], ";")
 
+  // Collapsed stack format is explicit about weights so assign a weight of
+  // zero to everything expect the leaf function.
 	var frame = &internal.Frame{
 		SymbolName:  funs[0],
 		SelfWeightNs: 0,
 		Depth: 0,
 	}
 
+  // Build the stack by going over every function.
   var last_frame *internal.Frame = frame;
 	for index, fun := range funs{
     if index == 0 {
@@ -100,6 +108,7 @@ func parseCallLine(line string) (f *internal.Frame, err error) {
     last_frame = current_frame
   }
 
+  // Assign the weight to the leaf function.
   last_frame.SelfWeightNs = frequence
 
   return frame, nil

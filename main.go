@@ -45,8 +45,8 @@ For example, 'My Process Name [pid: 123] [Annotation]' with -pidTag=123:Annotati
 )
 
 const (
-	kSample              string = "sample"
-	kInstrumentsDeepCopy string = "instruments"
+	kSample               string = "sample"
+	kInstrumentsDeepCopy  string = "instruments"
 	kInstrumentsCollapsed string = "collapsed"
 )
 
