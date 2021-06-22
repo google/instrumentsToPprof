@@ -65,6 +65,8 @@ func (d CollapsedParser) ParseProfile() (p *internal.TimeProfile, err error) {
     currentFrame, err := parseCallLine(line)
     if err == nil {
       currentThread.Frames = append(currentThread.Frames, currentFrame)
+    } else{
+      return p, err
     }
   }
 
