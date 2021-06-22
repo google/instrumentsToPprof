@@ -36,57 +36,67 @@ func TestLineParsing(t *testing.T) {
 		t.FailNow()
 	}
 
-  if(len(parsed_profile.Processes) != 1){
-		t.Errorf("Expected process count of 1")
+  // Only dummy process should be present.
+  expected_process_count := 1
+  if(len(parsed_profile.Processes) != expected_process_count){
+		t.Errorf("Expected process count of %d", expected_process_count)
   }
 
-  if(len(parsed_profile.Processes[0].Threads) != 1){
-		t.Errorf("Expected thread count of 1")
+  // Only dummy thread should be present.
+  expected_thread_count := 1
+  if(len(parsed_profile.Processes[0].Threads) != expected_thread_count){
+		t.Errorf("Expected thread count of %d", expected_thread_count)
   }
 
   frames := parsed_profile.Processes[0].Threads[0].Frames
-  if(len(frames) != 2){
-		t.Errorf("Expected thread count of %d, got, %d", 3, len(frames))
+  expected_frame_count := 2
+  if(len(frames) != expected_frame_count){
+		t.Errorf("Expected frame count of %d, got, %d", expected_frame_count, len(frames))
   }
 
+  // Keep track of how many of the expected frames we find.
   found_count := 0
+
   for _, frame := range frames{
+
     if frame.SymbolName == "Foo"{
       found_count+=1
+      symbol_name := "Foo"
 
       if(frame.Depth != 0){
-        t.Errorf("Wrong depth for %s. Got %d, expected %d", "Foo", frame.Depth, 0)
+        t.Errorf("Wrong depth for %s. Got %d, expected %d", symbol_name, frame.Depth, 0)
       }
 
       if(len(frame.Children) != 0){
-        t.Errorf("Foo, should not have children frames, found %d", len(frame.Children))
+        t.Errorf("%s, should not have children frames, found %d", symbol_name, len(frame.Children))
       }
     }
 
     if frame.SymbolName == "Bar"{
       found_count+=1
+      symbol_name := "Bar"
 
       if(frame.Depth != 0){
-        t.Errorf("Wrong depth for %s. Got %d, expected %d", "Bar", frame.Depth, 0)
-      }
-
-      if(len(frame.Children) != 1){
-        t.Errorf("Bar, should have 1 child frame, found %d", len(frame.Children))
-      }
-
-      child := frame.Children[0]
-      symbol_name := child.SymbolName
-
-      if(symbol_name != "Baz"){
-        t.Errorf("Wrong symbol name for child of Bar. Got %s, expected %s", symbol_name, "Baz")
-      }
-
-      if(child.Depth != 1){
         t.Errorf("Wrong depth for %s. Got %d, expected %d", symbol_name, frame.Depth, 0)
       }
 
+      if(len(frame.Children) != 1){
+        t.Errorf("%s, should have 1 child frame, found %d", symbol_name, len(frame.Children))
+      }
+
+      child := frame.Children[0]
+      child_symbol_name := child.SymbolName
+
+      if(child_symbol_name != "Baz"){
+        t.Errorf("Wrong symbol name for child of %s. Got %s, expected %s", symbol_name, child_symbol_name, "Baz")
+      }
+
+      if(child.Depth != 1){
+        t.Errorf("Wrong depth for %s. Got %d, expected %d", child_symbol_name, frame.Depth, 0)
+      }
+
       if(len(child.Children) != 0){
-        t.Errorf("%s, should have 0 child frame, found %d", symbol_name, len(frame.Children))
+        t.Errorf("%s, should have 0 child frame, found %d", child_symbol_name, len(frame.Children))
       }
 
     }
