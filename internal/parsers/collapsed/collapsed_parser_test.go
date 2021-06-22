@@ -16,42 +16,42 @@ package collapsed
 
 import (
   "strings"
-	"testing"
+  "testing"
 )
 
 func TestLineParsing(t *testing.T) {
   const collapsed = "Bar;Baz 2\n" +
   "Foo 2\n"
 
-	r := strings.NewReader(collapsed)
-	parser, err := MakeCollapsedParser(r)
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
+  r := strings.NewReader(collapsed)
+  parser, err := MakeCollapsedParser(r)
+  if err != nil {
+    t.Error(err)
+    t.FailNow()
+  }
 
-	parsed_profile, err := parser.ParseProfile()
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
+  parsed_profile, err := parser.ParseProfile()
+  if err != nil {
+    t.Error(err)
+    t.FailNow()
+  }
 
   // Only dummy process should be present.
   expected_process_count := 1
   if(len(parsed_profile.Processes) != expected_process_count){
-		t.Errorf("Expected process count of %d", expected_process_count)
+    t.Errorf("Expected process count of %d", expected_process_count)
   }
 
   // Only dummy thread should be present.
   expected_thread_count := 1
   if(len(parsed_profile.Processes[0].Threads) != expected_thread_count){
-		t.Errorf("Expected thread count of %d", expected_thread_count)
+    t.Errorf("Expected thread count of %d", expected_thread_count)
   }
 
   frames := parsed_profile.Processes[0].Threads[0].Frames
   expected_frame_count := 2
   if(len(frames) != expected_frame_count){
-		t.Errorf("Expected frame count of %d, got, %d", expected_frame_count, len(frames))
+    t.Errorf("Expected frame count of %d, got, %d", expected_frame_count, len(frames))
   }
 
   // Keep track of how many of the expected frames we find.

@@ -15,7 +15,7 @@
 package collapsed
 
 import (
-	"bufio"
+  "bufio"
   "io"
   "strconv"
   "strings"
@@ -24,34 +24,34 @@ import (
 )
 
 func MakeCollapsedParser(file io.Reader) (d CollapsedParser, err error) {
-	d = CollapsedParser{
-		lines: []string{},
-	}
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		d.lines = append(d.lines, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		return d, err
-	}
-	return d, nil
+  d = CollapsedParser{
+    lines: []string{},
+  }
+  scanner := bufio.NewScanner(file)
+  for scanner.Scan() {
+    d.lines = append(d.lines, scanner.Text())
+  }
+  if err := scanner.Err(); err != nil {
+    return d, err
+  }
+  return d, nil
 }
 
 // This parser supports the "collapsed stack" file format where each line of 
 // the file represents a full stack sample. This is a format commonly used
 // to generate flamegraphs.
 type CollapsedParser struct {
-	lines []string
+  lines []string
 }
 
 func (d CollapsedParser) ParseProfile() (p *internal.TimeProfile, err error) {
-	p = &internal.TimeProfile{}
-  
+  p = &internal.TimeProfile{}
+
   // Collapsed format merges all processes so just create a dummy one.
   var process = &internal.Process{
-		Pid:  0,
-		Name: "",
-	}
+    Pid:  0,
+    Name: "",
+  }
   p.Processes = append(p.Processes, process)
 
   // Collapsed format merges all threads so just create a dummy one.
@@ -61,14 +61,14 @@ func (d CollapsedParser) ParseProfile() (p *internal.TimeProfile, err error) {
 
   process.Threads = append(process.Threads, currentThread)
 
-	for _, line := range d.lines {
-		currentFrame, err := parseCallLine(line)
+  for _, line := range d.lines {
+    currentFrame, err := parseCallLine(line)
     if err == nil {
       currentThread.Frames = append(currentThread.Frames, currentFrame)
     }
   }
 
-	return p, nil
+  return p, nil
 }
 
 func parseCallLine(line string) (f *internal.Frame, err error) {
@@ -84,15 +84,15 @@ func parseCallLine(line string) (f *internal.Frame, err error) {
 
   // Collapsed stack format is explicit about weights so assign a weight of
   // zero to everything expect the leaf function.
-	var frame = &internal.Frame{
-		SymbolName:  funs[0],
-		SelfWeightNs: 0,
-		Depth: 0,
-	}
+  var frame = &internal.Frame{
+    SymbolName:  funs[0],
+    SelfWeightNs: 0,
+    Depth: 0,
+  }
 
   // Build the stack by going over every function.
   var last_frame *internal.Frame = frame;
-	for index, fun := range funs{
+  for index, fun := range funs{
     if index == 0 {
       continue
     }
