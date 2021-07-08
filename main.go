@@ -36,6 +36,7 @@ Flags:
 	formatHelp = `The format of the input. Use,
 --format=sample for parsing sample files
 --format=instruments for instruments deep-copy. This is the default.
+--format=collapsed for collapsed stack format. See github.com/brendangregg/FlameGraph#2-fold-stacks
 
 Sample copying is a new feature and may have issues. File an issue on github in that case.
 `
