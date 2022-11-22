@@ -14,7 +14,7 @@ The tool requires Go, which can be downloaded at the [Go homepage](https://golan
 
 `instrumentsToPprof` can be installed to the `GOPATH` using
 ```
-go install github.com/google/instrumentsToPprof
+go install github.com/google/instrumentsToPprof@latest
 ```
 
 or run directly in the repo using
