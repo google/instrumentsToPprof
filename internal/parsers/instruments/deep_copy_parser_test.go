@@ -38,6 +38,10 @@ func TestFrameTimeUnitParsing(t *testing.T) {
 			input: "100.00 µs",
 			expectedNs: 100_000,
 		},
+		{
+			input: "100.00 ns",
+			expectedNs: 100,
+		},
 	}
 
 	for _, c := range cases {
