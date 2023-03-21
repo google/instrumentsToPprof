@@ -200,7 +200,7 @@ func newProcessFromFrame(f *internal.Frame) (*internal.Process, error) {
 
 func parseSelfWeight(selfWeightText string) (int64, error) {
 	// String is in the format "2.00 ms" where valid units
-	// that I know about are "s", "ms", and "µs"
+	// that I know about are "s", "ms", "µs", and "ns".
 	// returns nanoseconds.
 
 	fields := strings.Split(selfWeightText, " ")
@@ -218,6 +218,8 @@ func parseSelfWeight(selfWeightText string) (int64, error) {
 		value *= 1_000_000
 	case "µs":
 		value *= 1_000
+	case "ns":
+		value *= 1
 	default:
 		return 0, fmt.Errorf("Could not interpret time unit '%s' in %s", selfWeightText, fields[1])
 	}
