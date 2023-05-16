@@ -65,5 +65,33 @@ and to produce a pprof from that sample, use the `--format` flag
 $ instrumentsToPprof --format=sample <output-file>
 ```
 
+## Profiling Google Chrome
+
+It's now possible to profile Google Chrome's various release channels
+(Stable, Beta, Dev, Canary) using instrumentsToPprof.
+
+Use the new
+[download_symbols.py](https://source.chromium.org/chromium/chromium/src/+/main:tools/mac/download_symbols.py)
+script to download the symbols for the specific release version of Chrome you're
+profiling. For example:
+
+```
+download_symbols.py -v 115.0.5763.0 -o .
+```
+
+Then use Instruments' Time Profiler to gather a trace. Next, in Instruments,
+select `File > Symbols...`. Locate the Chrome or Chrome Helper process from
+which you wanted the trace; sometimes it's easiest to find this using Chrome's
+Task Manager, for example to find the PID of the GPU process. Then you can find
+the specific PID in Instruments' list.
+
+Click "Locate" next to the dSYM path, and navigate to the directory the
+`download_symbols.py` script created.
+
+At this point, the stack traces for this process should be well symbolized in
+Instruments. If so, proceed with the deep copy instructions above, and pprof's
+flame graphs will look good.
+
+
 # Disclaimer
 This is not an officially supported Google product.
