@@ -64,7 +64,7 @@ func (d DeepCopyParser) ParseProfile() (p *internal.TimeProfile, err error) {
 		// Try to fetch process
 		if currentProcess == nil {
 			// Header line
-			if line == "Weight\tSelf Weight\t\tSymbol Name" {
+			if line == "Weight\tSelf Weight\tSymbol Names" {
 				continue
 			}
 			f, err := parseLine(line)
@@ -231,10 +231,9 @@ func parseLine(line string) (*internal.Frame, error) {
 	// Each line is tab seperated into 4 fields
 	// 1. Total weight "254.00 ms   22.5%"
 	// 2. Self weight "2.00ms"
-	// 3. A space
-	// 4. Depth (leading spaces) + Symbol name "    foo"
+	// 3. Depth (leading spaces) + Symbol name "    foo"
 	fields := strings.Split(line, "\t")
-	if len(fields) != 4 {
+	if len(fields) != 3 {
 		return nil, fmt.Errorf(
 			"Could not parse line \"%s\", only found %d tab-seperated fields",
 			line, len(fields))
@@ -243,8 +242,8 @@ func parseLine(line string) (*internal.Frame, error) {
 	if err != nil {
 		return nil, err
 	}
-	name := strings.TrimLeft(fields[3], " ")
-	depth := len(fields[3]) - len(name)
+	name := strings.TrimLeft(fields[2], " ")
+	depth := len(fields[2]) - len(name) - 1
 	return &internal.Frame{
 		Parent:       nil,
 		Children:     make([]*internal.Frame, 0),
