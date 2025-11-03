@@ -62,7 +62,7 @@ func TestDeepCopyParsing(t *testing.T) {
 		"2.0 s  20%\t2.0 s\t \t   bar1\n" +
 		"3.0 s  30%\t1.0 s\t \t   bar2\n" +
 		"2.0 s  20%\t2.0 s\t \t    baz\n" +
-		"5.0 s  50%\t0 s\t \t Thread 2  0x7ee1\n" +
+		"5.0 s  50%\t0 s\t \t Thread 2 0x7ee1\n" +
 		"5.0 s  50%\t5.0 s\t \t  spin\n" +
 		"\n"
 
@@ -102,17 +102,23 @@ func TestDeepCopyParsing(t *testing.T) {
 	if baz.SelfWeightNs != 2_000_000_000 {
 		t.Errorf("baz should have self weight %d was %d", 2_000_000_000, baz.SelfWeightNs)
 	}
+	th2 := proc.Threads[1]
+	if th2.Tid != 0x7ee1 || th2.Name != "Thread 2" {
+		t.Errorf("Thread 2 was wrong. Got %v, expected tid=%d name=%s", th, 0x7ee1, "Thread 2")
+	}
 }
 
 func TestInvalidThreadAndProcessNames(t *testing.T) {
 	const deepCopy = "Weight\tSelf Weight\t\tSymbol Name\n" +
 		"10.0 s  100%\t0 s\t \tMain Process 123\n" +
-		"5.0 s  50%\t0 s\t \t Thread 1 0x1ee7\n" +
+		"5.0 s  50%\t0 s\t \t Thread 1  1ee7\n" +
 		"5.0 s  50%\t0 s\t \t  foo\n" +
 		"2.0 s  20%\t2.0 s\t \t   bar1\n" +
 		"3.0 s  30%\t1.0 s\t \t   bar2\n" +
 		"2.0 s  20%\t2.0 s\t \t    baz\n" +
 		"5.0 s  50%\t0 s\t \t Thread 2  0x7ee1\n" +
+		"5.0 s  50%\t5.0 s\t \t  spin\n" +
+		"5.0 s  50%\t0 s\t \t Thread 3 0x1ee1\n" +
 		"5.0 s  50%\t5.0 s\t \t  spin\n" +
 		"\n"
 
@@ -131,7 +137,7 @@ func TestInvalidThreadAndProcessNames(t *testing.T) {
 	if got.Processes[0].Name != "Main Process 123" {
 		t.Errorf("Expected process name %s was %s", "Main Process 123", got.Processes[0].Name)
 	}
-	if got.Processes[0].Threads[0].Name != "Thread 1 0x1ee7" {
-		t.Errorf("Expected thread name %s was %s", "Thread 1 0x1ee7", got.Processes[0].Threads[0].Name)
+	if got.Processes[0].Threads[0].Name != "Thread 1  1ee7" {
+		t.Errorf("Expected thread name %s was %s", "Thread 1  1ee7", got.Processes[0].Threads[0].Name)
 	}
 }
