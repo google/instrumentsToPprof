@@ -148,8 +148,11 @@ func newThreadFromFrame(f *internal.Frame) (*internal.Thread, error) {
 	if f.Depth != 1 {
 		return nil, fmt.Errorf("Thread must have depth 1, was %d: %v", f.Depth, f)
 	}
-	// Thread name is in format "<thread name>  0x<tid>"
-	threadRe := regexp.MustCompile(`(.*)\s\s0x([0-9a-f]+)$`)
+	// Thread name is in format "<thread name> 0x<tid>" (older Instruments) or
+	// "<thread name> 0x<tid>" (newer Instruments).
+	// The first group is made un-greedy so it doesn't match the second space between
+	// the thread name and tid if there is one.
+	threadRe := regexp.MustCompile(`(.*?)(?:\s\s|\s)0x([0-9a-f]+)$`)
 	matches := threadRe.FindStringSubmatch(f.SymbolName)
 	if len(matches) != 3 {
 		fmt.Printf("WARNING: Error parsing thread '%s'. Skipping thread name parsing.\n", f.SymbolName)
