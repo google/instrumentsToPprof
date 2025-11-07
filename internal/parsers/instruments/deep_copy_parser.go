@@ -64,7 +64,7 @@ func (d DeepCopyParser) ParseProfile() (p *internal.TimeProfile, err error) {
 		// Try to fetch process
 		if currentProcess == nil {
 			// Header line
-			if line == "Weight\tSelf Weight\t\tSymbol Name" {
+			if line == "Weight\tSelf Weight\t\tSymbol Name" || line == "Weight\tSelf Weight\tSymbol Names" {
 				continue
 			}
 			f, err := parseLine(line)
@@ -173,7 +173,7 @@ func newThreadFromFrame(f *internal.Frame) (*internal.Thread, error) {
 
 func newProcessFromFrame(f *internal.Frame) (*internal.Process, error) {
 	if f.Depth != 0 {
-		return nil, fmt.Errorf("Process must have depth 1, was %d: %v", f.Depth, f)
+		return nil, fmt.Errorf("Process must have depth 0, was %d: %v", f.Depth, f)
 	}
 	// Process name is in format "<process name> (<pid>)"
 	processRe := regexp.MustCompile(`(.*)\s\((\d+)\)$`)
@@ -228,23 +228,27 @@ func parseSelfWeight(selfWeightText string) (int64, error) {
 }
 
 func parseLine(line string) (*internal.Frame, error) {
-	// Each line is tab seperated into 4 fields
+	// Each line is tab separated into 3 or 4 fields
 	// 1. Total weight "254.00 ms   22.5%"
 	// 2. Self weight "2.00ms"
-	// 3. A space
+	// 3. Optionally, a space
 	// 4. Depth (leading spaces) + Symbol name "    foo"
 	fields := strings.Split(line, "\t")
-	if len(fields) != 4 {
+	if len(fields) != 3 && len(fields) != 4 {
 		return nil, fmt.Errorf(
-			"Could not parse line \"%s\", only found %d tab-seperated fields",
+			"Could not parse line \"%s\", only found %d tab-separated fields",
 			line, len(fields))
 	}
 	weight, err := parseSelfWeight(fields[1])
 	if err != nil {
 		return nil, err
 	}
-	name := strings.TrimLeft(fields[3], " ")
-	depth := len(fields[3]) - len(name)
+	lastField := fields[len(fields) - 1]
+	name := strings.TrimLeft(lastField, " ")
+	depth := len(lastField) - len(name)
+	if len(fields) == 3 {
+		depth -= 1
+	}
 	return &internal.Frame{
 		Parent:       nil,
 		Children:     make([]*internal.Frame, 0),
