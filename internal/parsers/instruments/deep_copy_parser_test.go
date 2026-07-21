@@ -17,6 +17,8 @@ package instruments
 import (
 	"strings"
 	"testing"
+
+	"github.com/google/instrumentsToPprof/internal"
 )
 
 func TestFrameTimeUnitParsing(t *testing.T) {
@@ -41,6 +43,14 @@ func TestFrameTimeUnitParsing(t *testing.T) {
 		{
 			input: "100.00 ns",
 			expectedNs: 100,
+		},
+		{
+			input: "0 s     ",
+			expectedNs: 0,
+		},
+		{
+			input: " 1.25 ms  ",
+			expectedNs: 1_250_000,
 		},
 	}
 
@@ -139,5 +149,47 @@ func TestInvalidThreadAndProcessNames(t *testing.T) {
 	}
 	if got.Processes[0].Threads[0].Name != "Thread 1  1ee7" {
 		t.Errorf("Expected thread name %s was %s", "Thread 1  1ee7", got.Processes[0].Threads[0].Name)
+	}
+}
+
+func TestNewThreadFromFrame(t *testing.T) {
+	type testCase struct {
+		symbolName   string
+		expectedName string
+		expectedTid  uint64
+	}
+	cases := []testCase{
+		{
+			symbolName:   "Thread 1  0x1ee7",
+			expectedName: "Thread 1",
+			expectedTid:  0x1ee7,
+		},
+		{
+			symbolName:   "Thread 2 0x7ee1",
+			expectedName: "Thread 2",
+			expectedTid:  0x7ee1,
+		},
+		{
+			symbolName:   "Main Thread (0x9ec1)",
+			expectedName: "Main Thread",
+			expectedTid:  0x9ec1,
+		},
+	}
+	for _, c := range cases {
+		f := &internal.Frame{
+			Depth:      1,
+			SymbolName: c.symbolName,
+		}
+		got, err := newThreadFromFrame(f)
+		if err != nil {
+			t.Errorf("Unexpected error parsing %q: %v", c.symbolName, err)
+			continue
+		}
+		if got.Name != c.expectedName {
+			t.Errorf("For %q, expected name %q, got %q", c.symbolName, c.expectedName, got.Name)
+		}
+		if got.Tid != c.expectedTid {
+			t.Errorf("For %q, expected tid %d (0x%x), got %d (0x%x)", c.symbolName, c.expectedTid, c.expectedTid, got.Tid, got.Tid)
+		}
 	}
 }

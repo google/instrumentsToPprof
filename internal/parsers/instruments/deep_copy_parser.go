@@ -152,7 +152,7 @@ func newThreadFromFrame(f *internal.Frame) (*internal.Thread, error) {
 	// "<thread name> 0x<tid>" (newer Instruments).
 	// The first group is made un-greedy so it doesn't match the second space between
 	// the thread name and tid if there is one.
-	threadRe := regexp.MustCompile(`(.*?)(?:\s\s|\s)0x([0-9a-f]+)$`)
+	threadRe := regexp.MustCompile(`(.*?)(?:\s+|\s+\()0x([0-9a-f]+)\)?$`)
 	matches := threadRe.FindStringSubmatch(f.SymbolName)
 	if len(matches) != 3 {
 		fmt.Printf("WARNING: Error parsing thread '%s'. Skipping thread name parsing.\n", f.SymbolName)
@@ -206,7 +206,7 @@ func parseSelfWeight(selfWeightText string) (int64, error) {
 	// that I know about are "s", "ms", "µs", and "ns".
 	// returns nanoseconds.
 
-	fields := strings.Split(selfWeightText, " ")
+	fields := strings.Fields(selfWeightText)
 	if len(fields) != 2 {
 		return 0, fmt.Errorf("Self weight not parsable: was not 2 fields in \"%s\"", selfWeightText)
 	}
